@@ -130,6 +130,7 @@ return {
     -- - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
     -- - settings (table): Override the default settings passed when initializing the server.
     local servers = {
+      clangd = {},
       ts_ls = {},
       ruff = {},
       pylsp = {
