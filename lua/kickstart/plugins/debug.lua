@@ -23,6 +23,8 @@ return {
 
     -- Add your own debuggers here
     'leoluz/nvim-dap-go',
+    -- CodeLLDB como dependência para que o Mason a encontre
+    'vadimcn/vscode-lldb',
   },
   keys = {
     -- Basic debugging keymaps, feel free to change to your liking!
@@ -66,7 +68,7 @@ return {
       function()
         require('dap').set_breakpoint(vim.fn.input 'Breakpoint condition: ')
       end,
-      desc = 'Debug: Set Breakpoint',
+      desc = 'Debug: Set Conditional Breakpoint',
     },
     -- Toggle to see last session result. Without this, you can't see session output in case of unhandled exception.
     {
@@ -75,6 +77,14 @@ return {
         require('dapui').toggle()
       end,
       desc = 'Debug: See last session result.',
+    },
+    -- Atalho para terminar a sessão de debug
+    {
+      '<leader>q',
+      function()
+      require('dap').terminate()
+      end,
+      desc = 'Debug: Terminate',
     },
   },
   config = function()
@@ -95,8 +105,44 @@ return {
       ensure_installed = {
         -- Update this to ensure that you have the debuggers for the langs you want
         'delve',
+        -- Garanta que o CodeLLDB seja instalado pelo Mason
+        'codelldb',
       },
     }
+
+    -- **** INÍCIO DA CONFIGURAÇÃO DO DEBUGGER C/C++ ****
+
+    -- [NOVO]: 1. Defina o adaptador CodeLLDB
+    dap.adapters.codelldb = {
+      type = 'server',
+      host = '127.0.0.1',
+      port = 13000,
+      executable = {
+        -- O caminho para o codelldb instalado pelo mason-nvim-dap
+        command = vim.fn.stdpath('data') .. '/mason/bin/codelldb',
+        args = { '--port', '13000' },
+      },
+    }
+
+    -- [NOVO]: 2. Defina as configurações de depuração para C e C++
+    dap.configurations.c = {
+      {
+        name = "Launch file (C)", -- Nome que aparecerá ao iniciar o debug
+        type = "codelldb",      -- Deve corresponder ao nome do adaptador acima
+        request = "launch",     -- Inicia o programa
+        program = function()
+        -- Solicita ao usuário o caminho do executável, com um padrão preenchido
+        return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/' .. vim.fn.expand('%:t:r'), 'file')
+        end,
+        cwd = '${workspaceFolder}', -- Diretório de trabalho do depurador
+        stopOnEntry = true,         -- Essencial: Pausa a execução na entrada do programa
+        args = {},                  -- Argumentos de linha de comando para o seu programa (opcional)
+      },
+    }
+
+    dap.configurations.cpp = dap.configurations.c -- C++ usa a mesma configuração de C
+
+    -- **** FIM DA CONFIGURAÇÃO DO DEBUGGER C/C++ ****
 
     -- Dap UI setup
     -- For more information, see |:help nvim-dap-ui|
